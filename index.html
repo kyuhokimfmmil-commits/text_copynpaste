@@ -141,35 +141,35 @@
         if (!input.trim()) return;
 
         const paragraphs = input.split(/\n\s*\n/);
-        const spaceChars = /[은는이가을를에게의와과로고며면다까요죠서써든지만나도야여아어라.,!?\)\]\>\"\']/;
-
+        
         const result = paragraphs.map(p => {
-            const lines = p.split('\n');
-            let processed = '';
+            let res = p;
             
-            for (let i = 0; i < lines.length; i++) {
-                const curr = lines[i].trim();
-                if (!curr) continue;
+            res = res.replace(/\n/g, ' ');
 
-                if (!processed) {
-                    processed = curr;
-                    continue;
-                }
+            res = res.replace(/([가-힣])\s+(은|는|이|가|을|를|의|도|로|으로|에서|에게|만|부터|까지|이다|이며|이므로|라며|라는|라고|로서|로써|보다|처럼|마저|조차)(?=\s|[.,!?]|$)/g, '$1$2');
+            res = res.replace(/([가-힣])\s+(은|는|이|가|을|를|의|도|로|으로|에서|에게|만|부터|까지|이다|이며|이므로|라며|라는|라고|로서|로써|보다|처럼|마저|조차)(?=\s|[.,!?]|$)/g, '$1$2');
 
-                const lastChar = processed.slice(-1);
-                const firstChar = curr.charAt(0);
+            res = res.replace(/([가-힣]{2,})\s+(하는|하다|하고|하며|하면|하지|하자|하여|한|할|합니다|합니까|하신|하실|하시어|하시고|되는|되다|되고|되며|되면|되지|되자|되어|된|될|됩니다|됩니까|되신|되실|되시고|시키는|시키다|시키고|시키며|시키면|시키지|시키자|시켜|시킨|시킬|시킵니다|시킵니까)\b/g, function(match, p1, p2) {
+                if (/[은는이가을를의도로만]$/.test(p1)) return match;
+                return p1 + p2;
+            });
 
-                if (/[가-힣]/.test(lastChar) && /[가-힣]/.test(firstChar)) {
-                    if (spaceChars.test(lastChar)) {
-                        processed += ' ' + curr;
-                    } else {
-                        processed += curr;
-                    }
-                } else {
-                    processed += ' ' + curr;
-                }
-            }
-            return processed;
+            const legalDict = [
+                '일괄적', '계속적', '구체적', '한정적', '통솔', '대법원', '헌법재판소', 
+                '죄형법정주의', '자동차관리법', '판매자', '공동목적', '특정다수', '결합체',
+                '최소한', '원칙', '어긋나서', '허용', '단순', '누락', '포함', '해석', '제공', '허위',
+                '기본권', '위헌', '합헌', '법치주의', '기소', '피의자', '피고인', '재판부'
+            ];
+            
+            legalDict.forEach(word => {
+                const spacedRegex = new RegExp(word.split('').join('\\s+'), 'g');
+                res = res.replace(spacedRegex, word);
+            });
+
+            res = res.replace(/ {2,}/g, ' ');
+
+            return res.trim();
         }).join('\n\n');
 
         const outputField = document.getElementById('outputText');
