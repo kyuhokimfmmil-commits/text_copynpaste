@@ -141,7 +141,36 @@
         if (!input.trim()) return;
 
         const paragraphs = input.split(/\n\s*\n/);
-        const result = paragraphs.map(p => p.replace(/\s+/g, ' ').trim()).join('\n\n');
+        const spaceChars = /[은는이가을를에게의와과로고며면다까요죠서써든지만나도야여아어라.,!?\)\]\>\"\']/;
+
+        const result = paragraphs.map(p => {
+            const lines = p.split('\n');
+            let processed = '';
+            
+            for (let i = 0; i < lines.length; i++) {
+                const curr = lines[i].trim();
+                if (!curr) continue;
+
+                if (!processed) {
+                    processed = curr;
+                    continue;
+                }
+
+                const lastChar = processed.slice(-1);
+                const firstChar = curr.charAt(0);
+
+                if (/[가-힣]/.test(lastChar) && /[가-힣]/.test(firstChar)) {
+                    if (spaceChars.test(lastChar)) {
+                        processed += ' ' + curr;
+                    } else {
+                        processed += curr;
+                    }
+                } else {
+                    processed += ' ' + curr;
+                }
+            }
+            return processed;
+        }).join('\n\n');
 
         const outputField = document.getElementById('outputText');
         outputField.value = result;
