@@ -1,5 +1,6 @@
 import streamlit as st
-from pykospacing import Spacing
+import re
+from kiwipiepy import Kiwi
 
 st.set_page_config(page_title="Text Refiner", page_icon="📄", layout="centered")
 
@@ -75,9 +76,9 @@ st.markdown("""
 
 @st.cache_resource
 def load_model():
-    return Spacing()
+    return Kiwi()
 
-spacing = load_model()
+kiwi = load_model()
 
 st.markdown('<h1 class="title-gradient">Text Refiner</h1>', unsafe_allow_html=True)
 
@@ -101,8 +102,9 @@ with col3:
                     if not p.strip():
                         continue
                     
-                    raw_text = p.replace(' ', '').replace('\n', '')
-                    result_paragraphs.append(spacing(raw_text))
+                    raw_text = p.replace('\n', ' ')
+                    raw_text = re.sub(r'\s+', ' ', raw_text)
+                    result_paragraphs.append(kiwi.space(raw_text))
                     
                 st.session_state.output_text = '\n\n'.join(result_paragraphs)
         else:
