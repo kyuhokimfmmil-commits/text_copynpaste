@@ -42,6 +42,21 @@ st.markdown("""
         box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.1) !important;
     }
 
+    .streaming-box {
+        background-color: #f5f5f7;
+        border: 1px solid #d2d2d7;
+        border-radius: 12px;
+        padding: 16px;
+        font-size: 15px;
+        line-height: 1.6;
+        color: #1d1d1f;
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
+        min-height: 200px;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        margin-bottom: 1rem;
+    }
+
     div[data-testid="stButton"] > button {
         border-radius: 10px !important;
         font-weight: 600 !important;
@@ -96,23 +111,37 @@ with col3:
         elif not st.session_state.input_text.strip():
             st.warning("텍스트를 먼저 입력해주세요.")
         else:
-            with st.spinner("AI가 문맥을 분석하며 띄어쓰기를 완벽하게 교정하고 있습니다..."):
-                try:
-                    client = OpenAI(api_key=api_key)
-                    
-                    prompt = '''당신은 법률 및 학술 텍스트 전문 교정기입니다. 주어진 텍스트는 PDF 문서에서 복사해 온 것으로 줄바꿈 위치가 무작위로 띄어쓰기로 변환되어 단어의 허리가 끊겨있는 상태입니다. 다음 지시사항을 엄격하게 따르세요. 첫째 끊어진 단어나 어색한 공백을 문맥에 맞게 이어 붙이세요. 둘째 원본 텍스트의 단어를 임의로 변경하거나 빼거나 더하지 마시고 오직 잘못된 띄어쓰기만 교정해야 합니다. 셋째 문단 구분을 위한 이중 줄바꿈은 반드시 그대로 유지하세요. 넷째 부가적인 설명 없이 교정된 결과물만 출력하세요.'''
-                    
-                    response = client.chat.completions.create(
-                        model="gpt-4o-mini",
-                        messages=[
-                            {"role": "system", "content": prompt},
-                            {"role": "user", "content": st.session_state.input_text}
-                        ],
-                        temperature=0.1
-                    )
-                    st.session_state.output_text = response.choices[0].message.content.strip()
-                except Exception as e:
-                    st.error(f"API 호출 중 오류가 발생했습니다. 키가 정확한지 확인해주세요.")
+            try:
+                client = OpenAI(api_key=api_key)
+                
+                prompt = '''당신은 법률 및 학술 텍스트 전문 교정기입니다. 주어진 텍스트는 PDF 문서에서 복사해 온 것으로 줄바꿈 위치가 무작위로 띄어쓰기로 변환되어 단어의 허리가 끊겨있는 상태입니다. 다음 지시사항을 엄격하게 따르세요. 첫째 끊어진 단어나 어색한 공백을 문맥에 맞게 이어 붙이세요. 둘째 원본 텍스트의 단어를 임의로 변경하거나 빼거나 더하지 마시고 오직 잘못된 띄어쓰기만 교정해야 합니다. 셋째 문단 구분을 위한 이중 줄바꿈은 반드시 그대로 유지하세요. 넷째 부가적인 설명 없이 교정된 결과물만 출력하세요.'''
+                
+                response = client.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=[
+                        {"role": "system", "content": prompt},
+                        {"role": "user", "content": st.session_state.input_text}
+                    ],
+                    temperature=0.1,
+                    stream=True
+                )
+                
+                status_msg = st.empty()
+                status_msg.info("AI가 문맥을 분석하며 띄어쓰기를 실시간으로 교정하고 있습니다...")
+                
+                res_box = st.empty()
+                streamed_text = ""
+                
+                for chunk in response:
+                    if chunk.choices[0].delta.content is not None:
+                        streamed_text += chunk.choices[0].delta.content
+                        res_box.markdown(f'<div class="streaming-box">{streamed_text}▌</div>', unsafe_allow_html=True)
+                
+                st.session_state.output_text = streamed_text
+                st.rerun()
+                
+            except Exception as e:
+                st.error(f"API 호출 중 오류가 발생했습니다. 키가 정확한지 확인해주세요.")
 
 if st.session_state.output_text:
     st.success("변환이 완료되었습니다.")
