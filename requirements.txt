@@ -1,3 +1,4 @@
 streamlit
 tensorflow-cpu
+setuptools
 git+https://github.com/haven-jeon/PyKoSpacing.git
