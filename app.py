@@ -8,6 +8,10 @@ if 'input_text' not in st.session_state:
 if 'output_text' not in st.session_state:
     st.session_state.output_text = ""
 
+def clear_text():
+    st.session_state.input_text = ""
+    st.session_state.output_text = ""
+
 st.markdown("""
 <style>
     .title-gradient {
@@ -84,18 +88,23 @@ st.text_area("입력", key="input_text", height=200, placeholder="텍스트를 �
 col1, col2, col3 = st.columns([5, 2, 2.5])
 
 with col2:
-    if st.button("초기화", use_container_width=True):
-        st.session_state.input_text = ""
-        st.session_state.output_text = ""
-        st.rerun()
+    st.button("초기화", on_click=clear_text, use_container_width=True)
 
 with col3:
     if st.button("변환하기", type="primary", use_container_width=True):
         if st.session_state.input_text.strip():
             with st.spinner("AI가 띄어쓰기를 교정하고 있습니다..."):
-                raw_text = st.session_state.input_text.replace('\n', ' ')
-                raw_text = ' '.join(raw_text.split())
-                st.session_state.output_text = spacing(raw_text)
+                paragraphs = st.session_state.input_text.split('\n\n')
+                result_paragraphs = []
+                
+                for p in paragraphs:
+                    if not p.strip():
+                        continue
+                    
+                    raw_text = p.replace(' ', '').replace('\n', '')
+                    result_paragraphs.append(spacing(raw_text))
+                    
+                st.session_state.output_text = '\n\n'.join(result_paragraphs)
         else:
             st.warning("텍스트를 먼저 입력해주세요.")
 
