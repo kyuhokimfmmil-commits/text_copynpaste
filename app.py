@@ -1,6 +1,5 @@
 import streamlit as st
-import re
-from kiwipiepy import Kiwi
+from openai import OpenAI
 
 st.set_page_config(page_title="Text Refiner", page_icon="📄", layout="centered")
 
@@ -74,15 +73,14 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-@st.cache_resource
-def load_model():
-    return Kiwi()
-
-kiwi = load_model()
+with st.sidebar:
+    st.markdown("### 환경 설정")
+    api_key = st.text_input("OpenAI API Key", type="password", placeholder="sk-...")
+    st.markdown("본인의 API 키를 입력해주세요. 팀원들과 링크 공유 시 각자의 환경에서 키를 입력하여 안전하게 사용할 수 있습니다.")
 
 st.markdown('<h1 class="title-gradient">Text Refiner</h1>', unsafe_allow_html=True)
 
-st.markdown("PDF에서 복사한 텍스트를 붙여넣으세요.<br>형태소 분석 기반의 한국어 자연어 처리 기반 라이브러리를 통해 띄어쓰기를 복원하여 변환합니다.", unsafe_allow_html=True)
+st.markdown("PDF에서 복사한 텍스트를 붙여넣으세요.<br>대형 언어 모델이 문맥을 파악하여 무작위로 끊어진 띄어쓰기만 완벽하게 복원합니다.", unsafe_allow_html=True)
 
 st.text_area("입력", key="input_text", height=200, placeholder="텍스트를 이곳에 붙여넣어 주세요.", label_visibility="collapsed")
 
@@ -93,22 +91,28 @@ with col2:
 
 with col3:
     if st.button("변환하기", type="primary", use_container_width=True):
-        if st.session_state.input_text.strip():
-            with st.spinner("AI가 띄어쓰기를 교정하고 있습니다..."):
-                paragraphs = st.session_state.input_text.split('\n\n')
-                result_paragraphs = []
-                
-                for p in paragraphs:
-                    if not p.strip():
-                        continue
-                    
-                    raw_text = p.replace('\n', ' ')
-                    raw_text = re.sub(r'\s+', ' ', raw_text)
-                    result_paragraphs.append(kiwi.space(raw_text))
-                    
-                st.session_state.output_text = '\n\n'.join(result_paragraphs)
-        else:
+        if not api_key:
+            st.error("좌측 사이드바에서 OpenAI API Key를 먼저 입력해주세요.")
+        elif not st.session_state.input_text.strip():
             st.warning("텍스트를 먼저 입력해주세요.")
+        else:
+            with st.spinner("AI가 문맥을 분석하며 띄어쓰기를 완벽하게 교정하고 있습니다..."):
+                try:
+                    client = OpenAI(api_key=api_key)
+                    
+                    prompt = '''당신은 법률 및 학술 텍스트 전문 교정기입니다. 주어진 텍스트는 PDF 문서에서 복사해 온 것으로 줄바꿈 위치가 무작위로 띄어쓰기로 변환되어 단어의 허리가 끊겨있는 상태입니다. 다음 지시사항을 엄격하게 따르세요. 첫째 끊어진 단어나 어색한 공백을 문맥에 맞게 이어 붙이세요. 둘째 원본 텍스트의 단어를 임의로 변경하거나 빼거나 더하지 마시고 오직 잘못된 띄어쓰기만 교정해야 합니다. 셋째 문단 구분을 위한 이중 줄바꿈은 반드시 그대로 유지하세요. 넷째 부가적인 설명 없이 교정된 결과물만 출력하세요.'''
+                    
+                    response = client.chat.completions.create(
+                        model="gpt-4o-mini",
+                        messages=[
+                            {"role": "system", "content": prompt},
+                            {"role": "user", "content": st.session_state.input_text}
+                        ],
+                        temperature=0.1
+                    )
+                    st.session_state.output_text = response.choices[0].message.content.strip()
+                except Exception as e:
+                    st.error(f"API 호출 중 오류가 발생했습니다. 키가 정확한지 확인해주세요.")
 
 if st.session_state.output_text:
     st.success("변환이 완료되었습니다.")
