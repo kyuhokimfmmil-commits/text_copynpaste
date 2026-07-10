@@ -91,6 +91,7 @@ st.markdown("""
 with st.sidebar:
     st.markdown("### 환경 설정")
     api_key = st.text_input("OpenAI API Key", type="password", placeholder="sk-...")
+    model_choice = st.selectbox("AI 모델 선택", ["gpt-4o", "gpt-4o-mini"])
     st.markdown("본인의 API 키를 입력해주세요. 팀원들과 링크 공유 시 각자의 환경에서 키를 입력하여 안전하게 사용할 수 있습니다.")
 
 st.markdown('<h1 class="title-gradient">Text Refiner</h1>', unsafe_allow_html=True)
@@ -116,15 +117,15 @@ if run_button:
         try:
             client = OpenAI(api_key=api_key)
             
-            prompt = '''당신은 텍스트의 띄어쓰기만 교정하는 기계입니다. 다음 규칙을 엄격히 지키십시오.
-첫째 원본 텍스트에서 공백 기호를 제외한 모든 글자와 기호는 단 하나도 바뀌거나 삭제되거나 추가되어서는 안 됩니다. 공백을 제외한 모든 글자와 기호가 원본과 수학적으로 완벽하게 일치해야 합니다.
-둘째 문장의 끝맺음을 습니다 혹은 입니다 등으로 절대 변형하지 마십시오. 예컨대 아 니다는 아니다로만 교정해야 하며 아닙니다로 바꾸는 것은 엄격히 금지됩니다.
-셋째 오직 잘못된 띄어쓰기를 붙이거나 필요한 띄어쓰기를 추가하는 것만 허용됩니다.
-넷째 문단 구분을 위한 이중 줄바꿈은 반드시 그대로 유지하십시오.
-다섯째 부가 설명 없이 결과 텍스트만 출력하십시오.'''
+            prompt = '''당신은 법률 문서 및 시험 문제의 띄어쓰기만 교정하는 시스템입니다. 
+원본 텍스트에서 공백 기호를 제외한 어떤 글자나 기호도 추가, 삭제, 변형해서는 안 됩니다. 
+'아 니다'를 '아닙니다'로 고치는 등 어미나 조사, 단어를 문맥에 맞게 임의로 윤색하는 행위는 엄격히 금지됩니다. 
+오직 끊어진 단어를 붙이거나 필요한 띄어쓰기를 넣는 작업만 수행하십시오.
+줄바꿈 규칙: 기존 텍스트의 무작위 줄바꿈은 모두 무시하고 글을 자연스럽게 이어 붙이십시오. 단, '①, ②, ③, ④, ⑤'와 같은 원문자(동그라미 기호)가 나타날 때만 반드시 그 기호 바로 앞에서 줄바꿈을 하여 각 선택지가 명확하게 구분되도록 하십시오.
+교정된 결과만 출력하십시오.'''
             
             response = client.chat.completions.create(
-                model="gpt-4o-mini",
+                model=model_choice,
                 messages=[
                     {"role": "system", "content": prompt},
                     {"role": "user", "content": st.session_state.input_text}
